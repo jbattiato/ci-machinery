@@ -77,9 +77,15 @@ tasks:
 
       Configurable vars:
         IMAGE_NAME           Required. Repository name of the bundle image;
+        BUILDER_NAME         The name of the docker builder conneted to the
+                              docker network shared with the local container
+                              registry.
+                              Default: ".builder_name".
         BUNDLE_DIR           Directory holding the generated bundle and
                               bundle.Dockerfile.
                               Default: "olm-bundle".
+        INSECURE_REGISTRY    Allow pushing to insecure registry.
+                              Default: "false".
         IMAGE_REGISTRY       Registry the image is tagged for and pushed to.
                               Default: "localhost:5000".
         IMAGE_TAG            Tag applied to the bundle image.
@@ -88,9 +94,11 @@ tasks:
                               Default: "linux/amd64,linux/arm64".
     vars:
       BUNDLE_DIR: '{{ .BUNDLE_DIR | default "olm-bundle" }}'
+      BUILDER_NAME: '{{ .BUILDER_NAME | default .builder_name }}'
       BUNDLE_PACKAGE_NAME: '{{ .BUNDLE_PACKAGE_NAME | default .IMAGE_NAME }}'
       IMAGE_REGISTRY: '{{ .IMAGE_REGISTRY | default "localhost:5000" }}'
       IMAGE_TAG: '{{ .IMAGE_TAG | default "bundle" }}'
+      INSECURE_REGISTRY: '{{ .INSECURE_REGISTRY | default "true" }}'
       PLATFORMS: '{{ .PLATFORMS | default "linux/amd64,linux/arm64" }}'
     requires:
       vars:
@@ -99,8 +107,10 @@ tasks:
     cmds:
       - >
         docker buildx build
+        --builder {{ .BUILDER_NAME }}
         --platform {{ .PLATFORMS }}
         --tag {{ .IMAGE_REGISTRY }}/{{ .IMAGE_NAME }}:{{ .IMAGE_TAG }}
         -f {{ .BUNDLE_DIR }}/bundle.Dockerfile
+        --output="type=image,registry.insecure={{ .INSECURE_REGISTRY }}"
         --push
         {{ .BUNDLE_DIR }}
